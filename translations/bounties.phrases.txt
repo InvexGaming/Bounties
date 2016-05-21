@@ -1,0 +1,99 @@
+//{NORMAL}", "{DARKRED}", "{PINK}", "{GREEN}", "{YELLOW}", "{LIGHTGREEN}", "{RED}", "{GRAY}",  "{BLUE}", "{DARKBLUE}", "{PURPLE}
+
+"Phrases"
+{
+  "You Were Refunded - Disconnect"
+  {
+    "#format"		"{1:d},{2:N}"
+    "en"  "You were refunded {LIGHTGREEN}{1}{NORMAL} credits because {LIGHTGREEN}{2}{NORMAL} has disconnected from the server."
+  }
+  "You Were Refunded - Suicide"
+  {
+    "#format"		"{1:d},{2:N}"
+    "en"  "You were refunded {LIGHTGREEN}{1}{NORMAL} credits because {LIGHTGREEN}{2}{NORMAL} suicided."
+  }
+  "You Were Refunded - Join Spec"
+  {
+    "#format"		"{1:d},{2:N}"
+    "en"  "You were refunded {LIGHTGREEN}{1}{NORMAL} credits because {LIGHTGREEN}{2}{NORMAL} moved to spectator."
+  }
+  "Map End Survived"
+  {
+    "#format"		"{1:N},{2:d}"
+    "en"  "{LIGHTGREEN}{1}{NORMAL} collected the bounty of {LIGHTGREEN}{2}{NORMAL} credits on their head by surviving until the end of the map."
+  }
+  "Bounty Collected"
+  {
+    "#format"		"{1:N},{2:d},{3:N}"
+    "en"  "{LIGHTGREEN}{1}{NORMAL} collected the bounty of {LIGHTGREEN}{2}{NORMAL} credits on {LIGHTGREEN}{3}'s{NORMAL} head!"
+  }
+  "Auto Bounty Added"
+  {
+    "#format"		"{1:d},{2:N}"
+    "en"  "An auto bounty of {LIGHTGREEN}{1}{NORMAL} credits was put on {LIGHTGREEN}{2}'s{NORMAL} head."
+  }
+  "Auto Bounty Update"
+  {
+    "#format"		"{1:N},{2:d}"
+    "en"  "The auto bounty on {LIGHTGREEN}{1}'s{NORMAL} head has increased to {LIGHTGREEN}{2}{NORMAL} credits."
+  }
+  "Cant Bounty Self"
+  {
+    "en"  "You can't set a bounty on yourself."
+  }
+  "Bounty Cant Negative Or Zero"
+  {
+    "en"  "The bounty amount cannot be negative or zero."
+  }
+  "Bounty Too High"
+  {
+    "#format"		"{1:d}"
+    "en"  "That bounty amount is too high. Maximum bounty amount is {LIGHTGREEN}{1}{NORMAL} credits."
+  }
+  "Bounty Already Set"
+  {
+    "#format"		"{1:N}"
+    "en"  "You have already set a bounty on {LIGHTGREEN}{1}'s{NORMAL} head."
+  }
+  "Not Enough Credits"
+  {
+    "en"  "You don't have enough credits to set this bounty."
+  }
+  "New Bounty Set"
+  {
+    "#format"		"{1:d},{2:N},{3:N}"
+    "en"  "A bounty of {LIGHTGREEN}{1}{NORMAL} credits was put on {LIGHTGREEN}{2}'s{NORMAL} head by {LIGHTGREEN}{3}{NORMAL}."
+  }
+  "No Bounty Player"
+  {
+    "#format"		"{1:N}"
+    "en"  "There is currently no bounty on {LIGHTGREEN}{1}'s{NORMAL} head."
+  }
+  "No Bounty Player Self Check"
+  {
+    "en"  "There is currently no bounty on your head."
+  }
+  "Yes Bounty Player"
+  {
+    "#format"		"{1:d},{2:N}"
+    "en"  "There is a total bounty of {LIGHTGREEN}{1}{NORMAL} credits on {LIGHTGREEN}{2}'s{NORMAL} head."
+  }
+  "Yes Bounty Player Self Check"
+  {
+    "#format"		"{1:d}"
+    "en"  "There is a total bounty of {LIGHTGREEN}{1}{NORMAL} credits on your head."
+  }
+  "Plugin Enabled Map"
+  {
+    "en"  "This plugin is now active for this map!"
+  }
+  "Plugin Disabled Map"
+  {
+    "#format"		"{1:d}"
+    "en"  "This plugin will be disabled for this map as there are not enough starting players. Minimum of {LIGHTGREEN}{1}{NORMAL} players required."
+  }
+  "Plugin Disabled For Map"
+  {
+    "en"  "This plugin is disabled for this map as there was not enough starting players."
+  }
+}
