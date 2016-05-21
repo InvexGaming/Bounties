@@ -4,7 +4,7 @@
 #include <csgocolors>
 
 //Defines
-#define VERSION "1.01"
+#define VERSION "1.02"
 #define CHAT_TAG_PREFIX "[{RED}BOUNTIES{NORMAL}] "
 #define PLAYER_SERVER 0
 #define CS_TEAM_UNASSIGNED 0
@@ -20,6 +20,7 @@ int playerKillStreak[MAXPLAYERS+1] = 0;
 ArrayList playerSetBountyTarget[MAXPLAYERS+1];  //list of players who set a bounty on client
 ArrayList playerSetBountyAmount[MAXPLAYERS+1];  //ammount a player has put on another player
 
+char g_LogPath[256]; //log filename path
 
 public Plugin myinfo =
 {
@@ -36,6 +37,8 @@ public void OnPluginStart()
   //Translations
   LoadTranslations("common.phrases");
   LoadTranslations("bounties.phrases");
+  
+  BuildPath(Path_SM, g_LogPath, sizeof(g_LogPath), "logs/bountyhunter.log");
   
   //Flags
   CreateConVar("sm_bounties_version", VERSION, "", FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY|FCVAR_CHEAT|FCVAR_DONTRECORD);
@@ -265,6 +268,11 @@ public Action Event_PlayerDeath(Event event, const char[] name, bool dontBroadca
     case 4:
     {
       autoBountyAmount = 10;
+      
+      //Record killstreak to file
+      if (IsClientInGame(attacker)) {
+        LogToFileEx(g_LogPath, "Player %N attained %d killstreak!", attacker, playerKillStreak[attacker]);
+      }
     }
     case 7:
     {
@@ -293,6 +301,11 @@ public Action Event_PlayerDeath(Event event, const char[] name, bool dontBroadca
     case 40:
     {
       autoBountyAmount = 3000;
+      
+      //Record killstreak to file
+      if (IsClientInGame(attacker)) {
+        LogToFileEx(g_LogPath, "Player %N attained %d killstreak!", attacker, playerKillStreak[attacker]);
+      }
     }
   }
   
