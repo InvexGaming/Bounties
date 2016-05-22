@@ -268,11 +268,6 @@ public Action Event_PlayerDeath(Event event, const char[] name, bool dontBroadca
     case 4:
     {
       autoBountyAmount = 10;
-      
-      //Record killstreak to file
-      if (IsClientInGame(attacker)) {
-        LogToFileEx(g_LogPath, "Player %N attained %d killstreak!", attacker, playerKillStreak[attacker]);
-      }
     }
     case 7:
     {
