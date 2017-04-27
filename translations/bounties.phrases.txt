@@ -41,6 +41,11 @@
   {
     "en"  "You can't set a bounty on yourself."
   }
+  "Cant Bounty Bad Team"
+  {
+    "#format"		"{1:N}"
+    "en"  "You cannot set a bounty on {LIGHTGREEN}{1}{NORMAL} because they are not in the Counter-Terrorist or Terrorist teams."
+  }
   "Bounty Cant Negative Or Zero"
   {
     "en"  "The bounty amount cannot be negative or zero."

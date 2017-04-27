@@ -4,7 +4,7 @@
 #include <csgocolors>
 
 //Defines
-#define VERSION "1.02"
+#define VERSION "1.03"
 #define CHAT_TAG_PREFIX "[{RED}BOUNTIES{NORMAL}] "
 #define PLAYER_SERVER 0
 #define CS_TEAM_UNASSIGNED 0
@@ -41,7 +41,7 @@ public void OnPluginStart()
   BuildPath(Path_SM, g_LogPath, sizeof(g_LogPath), "logs/bountyhunter.log");
   
   //Flags
-  CreateConVar("sm_bounties_version", VERSION, "", FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY|FCVAR_CHEAT|FCVAR_DONTRECORD);
+  CreateConVar("sm_bounties_version", VERSION, "", FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY|FCVAR_CHEAT|FCVAR_DONTRECORD);
   
   RegConsoleCmd("sm_setbounty", Command_Set_Bounty, "Set bounty on another player");
   RegConsoleCmd("sm_sb", Command_Set_Bounty, "Set bounty on another player");
@@ -59,24 +59,30 @@ public void OnPluginStart()
   cvar_max_bounty_amount = CreateConVar("sm_bounties_max_bounty_amount", "1000", "Maximum amount a player can put on another players head (def. 1000)");
   cvar_min_players = CreateConVar("sm_bounties_min_players", "6", "Minimum amount of players before plugin active (def. 6)");
   
-  //Create arrays
-  int iMaxClients = GetMaxClients();
-  
-  for (int i = 1; i <= iMaxClients; ++i) {
-    if (IsClientInGame(i)) {
-      playerKillStreak[i] = 0;
-      playerSetBountyTarget[i] = CreateArray(MAXPLAYERS+1);
-      playerSetBountyAmount[i] = CreateArray(MAXPLAYERS+1);
-    }
-  }
-  
   //Starts disabled
   isEnabled = false;
   
-  CreateTimer(1.0, Timer_CheckPlayers);
-  
   //Create config file
   AutoExecConfig(true, "bounties");
+}
+
+//On Map Start
+public OnMapStart()
+{
+  //Start disabled on a new map
+  isEnabled = false;
+  
+  //Create arrays
+  for (int i = 1; i <= MaxClients; ++i) {
+    if (IsClientInGame(i)) {
+      playerKillStreak[i] = 0;
+      playerSetBountyTarget[i] = new ArrayList(1);
+      playerSetBountyAmount[i] = new ArrayList(1);
+    }
+  }
+  
+  //Delay count of players
+  CreateTimer(30.0, Timer_CheckPlayers);
 }
 
 //Client put in server
@@ -85,14 +91,14 @@ public void OnClientPutInServer(int client)
   playerKillStreak[client] = 0;
   
   if (playerSetBountyTarget[client] != null)
-    ClearArray(playerSetBountyTarget[client]);
+    playerSetBountyTarget[client].Clear();
   else 
-    playerSetBountyTarget[client] = CreateArray(MAXPLAYERS+1);
+    playerSetBountyTarget[client] = new ArrayList(1);
   
   if (playerSetBountyAmount[client] != null)
-    ClearArray(playerSetBountyAmount[client]);
+    playerSetBountyAmount[client].Clear();
   else
-    playerSetBountyAmount[client] = CreateArray(MAXPLAYERS+1);
+    playerSetBountyAmount[client] = new ArrayList(1);
 }
 
 //Client disconnect from server
@@ -106,12 +112,12 @@ public void OnClientDisconnect(int client)
     return;
   
   //Check if player has a bounty on them, if they did, refund everybody
-  int bountySize = GetArraySize(playerSetBountyTarget[client]);
+  int bountySize = playerSetBountyTarget[client].Length;
   
   if (bountySize != 0) {
     for (int i = 0; i < bountySize; ++i) {
-      int refundTarget = GetArrayCell(playerSetBountyTarget[client], i);
-      int refundAmount = GetArrayCell(playerSetBountyAmount[client], i);
+      int refundTarget = playerSetBountyTarget[client].Get(i);
+      int refundAmount = playerSetBountyAmount[client].Get(i);
       
       //Refund credits
       if (refundTarget > 0 && refundTarget < MaxClients && IsClientInGame(refundTarget)) {
@@ -125,15 +131,6 @@ public void OnClientDisconnect(int client)
   
   //Reset bounty for player
   OnClientPutInServer(client);
-}
-
-//On Map Start
-public OnMapStart()
-{
-  isEnabled = false;
-  
-  //Delay count of players
-  CreateTimer(40.0, Timer_CheckPlayers);
 }
 
 //Delayed player count
@@ -150,9 +147,9 @@ public Action Timer_CheckPlayers(Handle timer)
     }
   }
   
-  if (playerCount < GetConVarInt(cvar_min_players)) {
+  if (playerCount < cvar_min_players.IntValue) {
     //Plugin remains disabled
-    CPrintToChatAll("%s%t", CHAT_TAG_PREFIX, "Plugin Disabled Map", GetConVarInt(cvar_min_players));
+    CPrintToChatAll("%s%t", CHAT_TAG_PREFIX, "Plugin Disabled Map", cvar_min_players.IntValue);
   }
   else {
     //Plugin is enabled
@@ -172,16 +169,14 @@ public Action Event_Match_End(Event event, const char[] name, bool dontBroadcast
     
   //Reset all bounties
   //Give bounty to player who has bounty on their head
-  int iMaxClients = GetMaxClients();
-  
-  for (int i = 1; i <= iMaxClients; ++i) {
+  for (int i = 1; i <= MaxClients; ++i) {
     if (IsClientInGame(i)) {
-      int bountySize = GetArraySize(playerSetBountyTarget[i]);
+      int bountySize = playerSetBountyTarget[i].Length;
       int totalBountyAmount = 0;
       
       if (bountySize != 0) {
         for (int j = 0; j < bountySize; ++j) {
-          totalBountyAmount += GetArrayCell(playerSetBountyAmount[i], j);
+          totalBountyAmount += playerSetBountyAmount[i].Get(j);
         }
         
         //Hand out credits
@@ -216,12 +211,12 @@ public Action Event_PlayerDeath(Event event, const char[] name, bool dontBroadca
   
   if (deadClient == attacker || attacker == 0) {
     //Player suicided or died to world, refund all credits
-    int bountySize = GetArraySize(playerSetBountyTarget[deadClient]);
+    int bountySize = playerSetBountyTarget[deadClient].Length;
     
     if (bountySize != 0) {
       for (int i = 0; i < bountySize; ++i) {
-        int refundTarget = GetArrayCell(playerSetBountyTarget[deadClient], i);
-        int refundAmount = GetArrayCell(playerSetBountyAmount[deadClient], i);
+        int refundTarget = playerSetBountyTarget[deadClient].Get(i);
+        int refundAmount = playerSetBountyAmount[deadClient].Get(i);
         
         //Refund credits
         if (refundTarget > 0 && refundTarget < MaxClients && IsClientInGame(refundTarget)) {
@@ -240,12 +235,12 @@ public Action Event_PlayerDeath(Event event, const char[] name, bool dontBroadca
   }
   
   //Give out bounty to attacker if dead client had one on their head
-  int bountySize = GetArraySize(playerSetBountyTarget[deadClient]);
+  int bountySize = playerSetBountyTarget[deadClient].Length;
   int totalBountyAmount = 0;
   
   if (bountySize != 0) {
     for (int i = 0; i < bountySize; ++i) {
-      totalBountyAmount += GetArrayCell(playerSetBountyAmount[deadClient], i);
+      totalBountyAmount += playerSetBountyAmount[deadClient].Get(i);
     }
     
     //Reset bounty for this client
@@ -299,7 +294,11 @@ public Action Event_PlayerDeath(Event event, const char[] name, bool dontBroadca
       
       //Record killstreak to file
       if (IsClientInGame(attacker)) {
-        LogToFileEx(g_LogPath, "Player %N attained %d killstreak!", attacker, playerKillStreak[attacker]);
+        char auth[32];
+        if (!GetClientAuthId(attacker, AuthId_Steam2, auth, sizeof(auth)))
+          Format(auth, sizeof(auth), "NO_AUTH");
+        
+        LogToFileEx(g_LogPath, "Player %N (%s) attained %d killstreak!", attacker, auth, playerKillStreak[attacker]);
       }
     }
   }
@@ -311,12 +310,12 @@ public Action Event_PlayerDeath(Event event, const char[] name, bool dontBroadca
   
   //Check if an auto bounty is set for this player
   bool wasAutoBountyUpdated = false;
-  int index = FindValueInArray(playerSetBountyTarget[attacker], PLAYER_SERVER);
+  int index = playerSetBountyTarget[attacker].FindValue(PLAYER_SERVER);
   
   if (index != -1) {
     //Remove old auto bounty
-    RemoveFromArray(playerSetBountyTarget[attacker], index);
-    RemoveFromArray(playerSetBountyAmount[attacker], index);
+    playerSetBountyTarget[attacker].Erase(index);
+    playerSetBountyAmount[attacker].Erase(index);
     
     wasAutoBountyUpdated = true;
     
@@ -324,8 +323,8 @@ public Action Event_PlayerDeath(Event event, const char[] name, bool dontBroadca
   }
   
   //Insert auto bounty
-  PushArrayCell(playerSetBountyTarget[attacker], PLAYER_SERVER);
-  PushArrayCell(playerSetBountyAmount[attacker], autoBountyAmount);
+  playerSetBountyTarget[attacker].Push(PLAYER_SERVER);
+  playerSetBountyAmount[attacker].Push(autoBountyAmount);
   
   if (!wasAutoBountyUpdated)
     CPrintToChatAll("%s%t", CHAT_TAG_PREFIX, "Auto Bounty Added", autoBountyAmount, attacker);
@@ -368,6 +367,13 @@ public Action Command_Set_Bounty(int client, int args)
     return Plugin_Handled;
   }
   
+  //Check to ensure target isn't in spectate mode
+  int targetTeam = GetClientTeam(target);
+  if (targetTeam != CS_TEAM_T && targetTeam != CS_TEAM_CT) {
+    CPrintToChat(client, "%s%t", CHAT_TAG_PREFIX, "Cant Bounty Bad Team", target);
+    return Plugin_Handled;
+  }
+  
   //Check that bounty isn't too low or zeo
   if (bountyAmount <= 0) {
     CPrintToChat(client, "%s%t", CHAT_TAG_PREFIX, "Bounty Cant Negative Or Zero");
@@ -375,13 +381,13 @@ public Action Command_Set_Bounty(int client, int args)
   }
   
   //Check that bounty isn't too high
-  if (bountyAmount > GetConVarInt(cvar_max_bounty_amount)) {
-    CPrintToChat(client, "%s%t", CHAT_TAG_PREFIX, "Bounty Too High", GetConVarInt(cvar_max_bounty_amount));
+  if (bountyAmount > cvar_max_bounty_amount.IntValue) {
+    CPrintToChat(client, "%s%t", CHAT_TAG_PREFIX, "Bounty Too High", cvar_max_bounty_amount.IntValue);
     return Plugin_Handled;
   }
   
   //Check that player hasn't already set bounty on target
-  int index = FindValueInArray(playerSetBountyTarget[target], client);
+  int index = playerSetBountyTarget[target].FindValue(client);
   if (index != -1) {
     CPrintToChat(client, "%s%t", CHAT_TAG_PREFIX, "Bounty Already Set", target);
     return Plugin_Handled;
@@ -399,8 +405,8 @@ public Action Command_Set_Bounty(int client, int args)
   Store_SetClientCredits(client, curCredits - bountyAmount);
   
   //Set bounty
-  PushArrayCell(playerSetBountyTarget[target], client);
-  PushArrayCell(playerSetBountyAmount[target], bountyAmount);
+  playerSetBountyTarget[target].Push(client);
+  playerSetBountyAmount[target].Push(bountyAmount);
   
   CPrintToChatAll("%s%t", CHAT_TAG_PREFIX, "New Bounty Set", bountyAmount, target, client);
   
@@ -436,12 +442,12 @@ public Action Command_Check_Bounty(int client, int args)
   }
   
   //Check if there is bounty on this players head
-  int bountySize = GetArraySize(playerSetBountyTarget[target]);
+  int bountySize = playerSetBountyTarget[target].Length;
   int totalBountyAmount = 0;
   
   if (bountySize != 0) {
     for (int i = 0; i < bountySize; ++i) {
-      totalBountyAmount += GetArrayCell(playerSetBountyAmount[target], i);
+      totalBountyAmount += playerSetBountyAmount[target].Get(i);
     }
   }
   
@@ -472,18 +478,18 @@ public Action Command_List_Bounty(int client, int args)
   if (!IsClientInGame(client))
     return Plugin_Handled;
     
-  ArrayList top10Bounty = CreateArray(MaxClients+1);
+  ArrayList top10Bounty = new ArrayList(64, MaxClients+1);
   int totalNumBounties = 0;
   
   //Check all bounties
   for (int i = 1; i < MaxClients; ++i) {
     if (IsClientInGame(i)) {
-      int bountySize = GetArraySize(playerSetBountyTarget[i]);
+      int bountySize = playerSetBountyTarget[i].Length;
       int totalBountyAmount = 0;
 
       if (bountySize != 0) {
         for (int j = 0; j < bountySize; ++j) {
-          totalBountyAmount += GetArrayCell(playerSetBountyAmount[i], j);
+          totalBountyAmount += playerSetBountyAmount[i].Get(j);
         }
       }
       
@@ -496,7 +502,7 @@ public Action Command_List_Bounty(int client, int args)
       Format(bountyLine, sizeof(bountyLine), "%s (%d)", name, totalBountyAmount);
       
       //Add to totals
-      PushArrayString(top10Bounty, bountyLine);
+      top10Bounty.PushString(bountyLine);
       
       ++totalNumBounties;
     }
@@ -506,30 +512,37 @@ public Action Command_List_Bounty(int client, int args)
   SortADTArrayCustom(top10Bounty, mySort);
   
   //Rank from highest to lowest
-  Menu BountyMenu = CreateMenu(BountyMenuHandler);
-  SetMenuTitle(BountyMenu, "Bounty List:");
+  Menu BountyMenu = new Menu(BountyMenuHandler);
+  BountyMenu.SetTitle("Bounty List:");
   
   for (int i = 0; i < totalNumBounties; ++i) {
     char buff1[128], option[2];
     IntToString(i, option, sizeof(option));
-    GetArrayString(top10Bounty, i, buff1, sizeof(buff1));
-    AddMenuItem(BountyMenu, option, buff1, ITEMDRAW_DISABLED);
+    top10Bounty.GetString(i, buff1, sizeof(buff1));
+    BountyMenu.AddItem(option, buff1, ITEMDRAW_DISABLED);
   }
   
   if (totalNumBounties == 0) {
-    AddMenuItem(BountyMenu, "1", "No bounties placed", ITEMDRAW_DISABLED);
+    BountyMenu.AddItem("1", "No bounties placed", ITEMDRAW_DISABLED);
   }
   
-  DisplayMenu(BountyMenu, client, MENU_TIME_FOREVER);
+  //Free array
+  delete top10Bounty;
+  
+  //Display this menu until clients exits it
+  BountyMenu.Display(client, MENU_TIME_FOREVER);
   
   return Plugin_Handled;
 }
 
 public int BountyMenuHandler(Menu menu, MenuAction action, int client, int param2)
 {
-  //Empty handler
+  //Destroy menu
+  if (action == MenuAction_End)
+    delete menu;
 }
 
+//SortFuncADTArray to sort the top 10 bounty list
 public int mySort(int index1, int index2, Handle array, Handle hndl)
 {
   char buff1[128], buff2[128];
@@ -555,27 +568,27 @@ public int mySort(int index1, int index2, Handle array, Handle hndl)
 
 //Refunds bounty if a player moves to spectate but not if they switch teams while dead
 public Action Command_JoinTeam(int client, const char[] command, int argc) 
-{   
+{
   if (!(client > 0 && client <= MaxClients && IsClientInGame(client)) || argc < 1)
     return Plugin_Handled;
-    
+  
   if (!isEnabled)
     return Plugin_Continue;
-
+  
   char arg[4];
   GetCmdArg(1, arg, sizeof(arg));
   int toTeam = StringToInt(arg);
-
+  
   if (toTeam == CS_TEAM_SPECTATOR || toTeam == CS_TEAM_UNASSIGNED) {
     //Check if they have a bounty on them
     //If so, refund the bounty and reset kill streak
     
-    int bountySize = GetArraySize(playerSetBountyTarget[client]);
+    int bountySize = playerSetBountyTarget[client].Length;
     
     if (bountySize != 0) {
       for (int i = 0; i < bountySize; ++i) {
-        int refundTarget = GetArrayCell(playerSetBountyTarget[client], i);
-        int refundAmount = GetArrayCell(playerSetBountyAmount[client], i);
+        int refundTarget = playerSetBountyTarget[client].Get(i);
+        int refundAmount = playerSetBountyAmount[client].Get(i);
         
         //Refund credits
         if (refundTarget > 0 && refundTarget < MaxClients && IsClientInGame(refundTarget)) {
