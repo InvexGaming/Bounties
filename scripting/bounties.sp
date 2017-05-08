@@ -4,7 +4,7 @@
 #include <csgocolors>
 
 //Defines
-#define VERSION "1.04"
+#define VERSION "1.05"
 #define CHAT_TAG_PREFIX "[{RED}BOUNTIES{NORMAL}] "
 #define PLAYER_SERVER 0
 
@@ -42,17 +42,17 @@ public void OnPluginStart()
   //Flags
   CreateConVar("sm_bounties_version", VERSION, "", FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY|FCVAR_CHEAT|FCVAR_DONTRECORD);
   
-  RegConsoleCmd("sm_setbounty", Command_Set_Bounty, "Set bounty on another player");
-  RegConsoleCmd("sm_sb", Command_Set_Bounty, "Set bounty on another player");
-  RegConsoleCmd("sm_checkbounty", Command_Check_Bounty, "Check bounty put on another players head");
-  RegConsoleCmd("sm_cb", Command_Check_Bounty, "Check bounty put on another players head");
-  RegConsoleCmd("sm_bountylist", Command_List_Bounty, "List the top bounties");
-  RegConsoleCmd("sm_bl", Command_List_Bounty, "List the top bounties");
+  RegConsoleCmd("sm_setbounty", Command_SetBounty, "Set bounty on another player");
+  RegConsoleCmd("sm_sb", Command_SetBounty, "Set bounty on another player");
+  RegConsoleCmd("sm_checkbounty", Command_CheckBounty, "Check bounty put on another players head");
+  RegConsoleCmd("sm_cb", Command_CheckBounty, "Check bounty put on another players head");
+  RegConsoleCmd("sm_bountylist", Command_ListBounty, "List the top bounties");
+  RegConsoleCmd("sm_bl", Command_ListBounty, "List the top bounties");
   
   //Hooks
   HookEvent("player_death", Event_PlayerDeath);
-  HookEvent("cs_win_panel_match", Event_Match_End);
-  AddCommandListener(Command_JoinTeam, "jointeam");
+  HookEvent("cs_win_panel_match", Event_MatchEnd);
+  HookEvent("player_team", Event_PlayerTeam);
   
   //Cvars
   g_Cvar_MaxBountyAmount = CreateConVar("sm_bounties_max_bounty_amount", "1000", "Maximum amount a player can put on another players head (def. 1000)");
@@ -161,7 +161,7 @@ public Action Timer_CheckPlayers(Handle timer)
 }
 
 //Called when match ends
-public Action Event_Match_End(Event event, const char[] name, bool dontBroadcast)
+public Action Event_MatchEnd(Event event, const char[] name, bool dontBroadcast)
 {
   if (!g_IsEnabled)
     return Plugin_Handled;
@@ -331,7 +331,7 @@ public Action Event_PlayerDeath(Event event, const char[] name, bool dontBroadca
   return Plugin_Continue;
 }
 
-public Action Command_Set_Bounty(int client, int args) 
+public Action Command_SetBounty(int client, int args) 
 {
   if (!g_IsEnabled) {
     CPrintToChat(client, "%s%t", CHAT_TAG_PREFIX, "Plugin Disabled For Map");
@@ -414,7 +414,7 @@ public Action Command_Set_Bounty(int client, int args)
 
     
 //Tells you the bounties put on various players
-public Action Command_Check_Bounty(int client, int args) 
+public Action Command_CheckBounty(int client, int args) 
 {
   if (!g_IsEnabled) {
     CPrintToChat(client, "%s%t", CHAT_TAG_PREFIX, "Plugin Disabled For Map");
@@ -467,7 +467,7 @@ public Action Command_Check_Bounty(int client, int args)
 }
 
 //Tells you the bounties put on various players
-public Action Command_List_Bounty(int client, int args) 
+public Action Command_ListBounty(int client, int args) 
 {
   if (!g_IsEnabled) {
     CPrintToChat(client, "%s%t", CHAT_TAG_PREFIX, "Plugin Disabled For Map");
@@ -566,17 +566,17 @@ public int mySort(int index1, int index2, Handle array, Handle hndl)
 }
 
 //Refunds bounty if a player moves to spectate but not if they switch teams while dead
-public Action Command_JoinTeam(int client, const char[] command, int argc) 
+public Action Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
 {
-  if (!(client > 0 && client <= MaxClients && IsClientInGame(client)) || argc < 1)
+  int client = GetClientOfUserId(event.GetInt("userid"));
+  
+  if (!(client > 0 && client <= MaxClients && IsClientInGame(client)))
     return Plugin_Handled;
   
   if (!g_IsEnabled)
     return Plugin_Continue;
   
-  char arg[4];
-  GetCmdArg(1, arg, sizeof(arg));
-  int toTeam = StringToInt(arg);
+  int toTeam = event.GetInt("team");
   
   if (toTeam == CS_TEAM_SPECTATOR || toTeam == CS_TEAM_NONE) {
     //Check if they have a bounty on them
